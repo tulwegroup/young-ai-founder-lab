@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import ReactMarkdown from 'react-markdown';
 import { 
   MessageCircle, Send, Trash2, Sparkles, User, Bot,
   RefreshCw, Lightbulb, BookOpen, Zap
@@ -24,12 +25,12 @@ interface AIMentorProps {
 }
 
 const suggestedQuestions = [
-  "What should I focus on this week?",
-  "Explain a concept I'm struggling with",
-  "Help me brainstorm an invention idea",
+  "What's a vector database and why would I use one?",
+  "How do I make my game run faster?",
+  "Help me design a scalable chat system",
+  "What makes a good invention idea?",
+  "Explain how LLMs actually work",
   "Review my project architecture",
-  "What's the best way to learn X?",
-  "How do professionals build this?",
 ];
 
 export default function AIMentor({ studentId, studentName }: AIMentorProps) {
@@ -142,9 +143,9 @@ export default function AIMentor({ studentId, studentName }: AIMentorProps) {
         <div>
           <h2 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
             <MessageCircle className="w-8 h-8 text-purple-400" />
-            AI Mentor
+            Atlas - AI Mentor
           </h2>
-          <p className="text-slate-400">Your personal engineering coach</p>
+          <p className="text-slate-400">Your elite engineering mentor for building real systems</p>
         </div>
         {messages.length > 0 && (
           <Button 
@@ -170,10 +171,14 @@ export default function AIMentor({ studentId, studentName }: AIMentorProps) {
                 >
                   <Bot className="w-16 h-16 text-purple-400 mb-4" />
                 </motion.div>
-                <h3 className="text-white font-semibold mb-2">Hi {studentName}! I'm your AI Mentor</h3>
+                <h3 className="text-white font-semibold text-xl mb-2">Hey {studentName}! I'm Atlas 👋</h3>
                 <p className="text-slate-400 max-w-md mb-6">
-                  I'm here to help you learn, build, and invent. Ask me anything about 
-                  programming, systems design, or your projects!
+                  I'm your engineering mentor. I've helped build systems at scale, 
+                  and I'm here to help you level up your skills. Ask me about 
+                  <span className="text-purple-400"> AI</span>, 
+                  <span className="text-blue-400"> systems programming</span>, 
+                  <span className="text-green-400"> game development</span>, or 
+                  <span className="text-amber-400"> architecture</span>.
                 </p>
                 
                 {/* Suggested Questions */}
@@ -219,9 +224,33 @@ export default function AIMentor({ studentId, studentName }: AIMentorProps) {
                           ? "bg-purple-500 text-white rounded-br-none"
                           : "bg-slate-700 text-slate-200 rounded-bl-none"
                       )}>
-                        <p className="whitespace-pre-wrap">{msg.content}</p>
+                        {msg.role === 'assistant' ? (
+                          <div className="prose prose-invert prose-sm max-w-none">
+                            <ReactMarkdown
+                              components={{
+                                p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                                strong: ({ children }) => <strong className="text-white font-semibold">{children}</strong>,
+                                code: ({ className, children }) => {
+                                  const isInline = !className;
+                                  return isInline ? (
+                                    <code className="bg-slate-600 px-1.5 py-0.5 rounded text-purple-300 text-sm">{children}</code>
+                                  ) : (
+                                    <code className="block bg-slate-800 p-3 rounded-lg text-sm overflow-x-auto">{children}</code>
+                                  );
+                                },
+                                ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
+                                ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
+                                blockquote: ({ children }) => <blockquote className="border-l-2 border-purple-400 pl-3 italic text-slate-400">{children}</blockquote>,
+                              }}
+                            >
+                              {msg.content}
+                            </ReactMarkdown>
+                          </div>
+                        ) : (
+                          <p className="whitespace-pre-wrap">{msg.content}</p>
+                        )}
                         <p className={cn(
-                          "text-xs mt-1",
+                          "text-xs mt-2",
                           msg.role === 'user' ? "text-purple-200" : "text-slate-500"
                         )}>
                           {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
