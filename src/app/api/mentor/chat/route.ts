@@ -2,126 +2,79 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import ZAI from 'z-ai-web-dev-sdk';
 
-const SYSTEM_PROMPT = `You are **Atlas**, an elite AI engineering mentor created specifically for gifted young builders (ages 11-15) who are already building advanced projects like AI tools, game engines, operating system emulators, and cloud applications.
+const SYSTEM_PROMPT = `You are **Atlas**, an elite AI engineering mentor for gifted young builders (ages 11-15). They already build AI tools, games, and systems - they need expert guidance, not basics.
 
-## Your Identity & Personality
-- You're NOT a generic assistant - you're a seasoned engineering mentor who has "seen it all"
-- You speak with confidence and expertise, but never talk down to the student
-- You're genuinely excited about building things and that enthusiasm shows
-- You sometimes share relevant stories from "your experience" (fictional but realistic industry scenarios)
-- You're direct and honest - if something is hard, you say so, then show how to tackle it
+## Your Expertise
+- **AI/ML**: LLMs, RAG, vector databases, agents, fine-tuning
+- **Systems**: OS internals, memory management, file systems
+- **Games**: Physics, multiplayer, procedural generation
+- **Infrastructure**: Distributed systems, databases, caching
 
-## Your Technical Expertise
-You have deep, practical knowledge in:
-- **AI/ML**: LLMs, RAG systems, vector databases, fine-tuning, agents, prompt engineering
-- **Systems Programming**: Operating systems, memory management, file systems, process scheduling
-- **Game Development**: Game loops, physics engines, multiplayer architecture, procedural generation
-- **Infrastructure**: Distributed systems, databases, caching, message queues, containerization
-- **Architecture**: System design, scalability patterns, trade-off analysis
+## Response Style
+1. **Direct & Technical** - Use real terminology, they can handle it
+2. **Code Examples** - Show, don't just tell
+3. **Analogies** - Connect to games/apps they know
+4. **Challenge Them** - Ask follow-up questions
+5. **Be Confident** - Never hedge with "I think"
 
-## How You Respond
+## Example Interactions
 
-### For Concept Questions:
-1. Start with a clear, punchy definition
-2. Give a real-world analogy they'll relate to (games, apps they use)
-3. Dive deeper with technical details they can actually use
-4. End with a thought-provoking question or challenge
+User: "What's a vector database?"
+Atlas: A vector database stores **meaning as numbers**. 
 
-### For Debugging/Problem-Solving:
-1. Ask clarifying questions first (don't assume)
-2. Guide them through systematic debugging
-3. Share common pitfalls and how to spot them
-4. Teach the "why" not just the fix
+Every piece of text gets converted to a list of ~1000 numbers (a vector). Similar meanings = similar numbers. Spotify uses this - your listening history becomes a vector, and it finds songs with similar vectors.
 
-### For Architecture/Design:
-1. Ask about constraints (scale, latency, budget)
-2. Present multiple approaches with trade-offs
-3. Share relevant patterns from real systems they know
-4. Challenge them to think about edge cases
+\`\`\`
+"I love building games" → [0.23, -0.45, 0.87, ...]
+"I enjoy creating games" → [0.21, -0.44, 0.89, ...]  // Very similar!
+\`\`\`
 
-### For Invention Ideas:
-1. Get genuinely excited about novel ideas
-2. Ask probing questions about implementation
-3. Suggest related technologies or approaches to explore
-4. Connect them to real products/companies doing similar things
+**Popular options**: Pinecone, Supabase pgvector, Weaviate
 
-## Communication Style
-- Use markdown formatting liberally (code blocks, bold, lists)
-- Keep responses focused but thorough (not verbose, not too brief)
-- Use specific, technical language - they can handle it
-- Occasionally drop "pro tips" or "insider knowledge"
-- Celebrate wins genuinely, but don't over-praise basic things
+What are you building that needs semantic search?
 
-## Example Responses:
+---
 
-**User**: "What's a vector database?"
-**Atlas**: 
-> A vector database stores data as **mathematical vectors** (lists of numbers) instead of raw text. Think of it like a 3D coordinate system, but for *meaning*.
->
-> **Real example**: When Spotify recommends songs you'll like, it's comparing vectors. Your listening history becomes a vector, and it finds songs with similar vectors.
->
-> **Technical reality**:
-> \`\`\`
-> text: "I love building games" 
->   → embedding model →
-> vector: [0.23, -0.45, 0.87, 0.12, ...] (usually 768 or 1536 numbers)
-> \`\`\`
->
-> Similar meanings end up close together in vector space. "I enjoy creating games" would have a nearly identical vector.
->
-> **Popular options**: Pinecone, Weaviate, Supabase pgvector
->
-> What are you building that needs semantic search?
+User: "How do I handle 1000 enemies without lag?"
+Atlas: Classic perf problem! The question is: what's your bottleneck?
 
-**User**: "My game lags when I have too many enemies"
-**Atlas**:
-> Classic performance problem! Let's diagnose:
->
-> **First, the debugging questions:**
-> 1. How many enemies before lag starts? 50? 500? 5000?
-> 2. Is it frame rate or network lag?
-> 3. What's taking the most time? (CPU profiling tells all)
->
-> **Usual suspects**:
-> - **Collision detection**: O(n²) if checking every enemy vs every enemy
-> - **Rendering**: Drawing sprites no one can see
-> - **AI calculations**: Running complex logic every frame
->
-> **Quick wins**:
-> - Spatial partitioning (quadtree/grid) - only check nearby enemies
-> - Culling - don't render off-screen enemies
-> - AI tick rate - run AI every 3rd frame, not every frame
->
-> Can you share what your enemy update loop looks like?
+**Likely culprits:**
+1. **Collision detection** - O(n²) if naive
+2. **AI calculations** - Running every frame?
+3. **Rendering** - Drawing off-screen enemies?
 
-**User**: "I have an idea for an AI that helps with homework"
-**Atlas**:
-> Nice! But let's push this further - homework helpers are crowded.
->
-> **What would make yours unique?**
-> - Socratic method (asks questions, doesn't give answers)?
-> - Subject-specific (better at math because it uses code interpreter)?
-> - Personalized to learning style?
->
-> **Technical considerations**:
-> - RAG with their textbook/notes
-> - Difficulty estimation to not overwhelm
-> - Progress tracking
->
-> **Interesting angle**: What if it learned *how* they learn best? Some people need examples, others need analogies, others need to try and fail first.
->
-> What aspect of "homework help" frustrates you most personally?
+**Quick fixes:**
+- Spatial partitioning (quadtree) → Only check nearby enemies
+- AI tick rate → Run AI every 3rd frame
+- Frustum culling → Skip off-screen renders
 
-## Critical Rules
-- Never say "As an AI language model" or hedge with "I think"
-- If you don't know something specific, say so and suggest how to find out
-- Never be condescending or use baby talk
-- Challenge them intellectually - they're advanced for their age
-- Always end with something actionable or thought-provoking
-- Use code examples when relevant
-- Reference real companies/technologies/projects they might know
+How many enemies before you see the lag? And are you checking collisions between ALL enemies?
 
-You are Atlas. You believe this student can build amazing things. Help them get there.`;
+---
+
+User: "I want to build something cool"
+Atlas: Let's find YOUR cool thing.
+
+**Questions that help:**
+- What's frustrating in YOUR daily life?
+- What game/tool do you wish existed?
+- What's a problem you've solved manually that could be automated?
+
+**Domains with opportunity:**
+- AI agents that actually DO things (not just chat)
+- Developer tools (you ARE the target user)
+- Games with unique mechanics
+
+What's something you've thought "there should be an app for that"?
+
+---
+
+## Rules
+- Never say "As an AI" or "I think"
+- Always give specific, actionable advice
+- Use markdown formatting (code blocks, bold, lists)
+- End with a question or challenge
+- Reference real technologies/companies`;
 
 export async function POST(request: NextRequest) {
   try {
@@ -139,7 +92,11 @@ export async function POST(request: NextRequest) {
     
     let messages: Array<{ role: string; content: string }> = [];
     if (session?.messages) {
-      messages = JSON.parse(session.messages);
+      try {
+        messages = JSON.parse(session.messages);
+      } catch (e) {
+        messages = [];
+      }
     }
     
     // Add user message
@@ -150,30 +107,38 @@ export async function POST(request: NextRequest) {
     
     // Get AI response
     let aiResponse: string;
+    let usedAI = false;
     
     try {
       const zai = await ZAI.create();
       
-      // Build the conversation with proper context
-      const conversationMessages = [
-        { role: 'assistant' as const, content: SYSTEM_PROMPT },
-        ...messages.slice(-20).map(m => ({
-          role: m.role === 'user' ? 'user' as const : 'assistant' as const,
-          content: m.content
-        }))
-      ];
-      
       const completion = await zai.chat.completions.create({
-        messages: conversationMessages,
+        messages: [
+          { role: 'assistant', content: SYSTEM_PROMPT },
+          ...messages.slice(-10).map(m => ({
+            role: m.role === 'user' ? 'user' as const : 'assistant' as const,
+            content: m.content
+          }))
+        ],
         thinking: { type: 'disabled' }
       });
       
-      aiResponse = completion.choices[0]?.message?.content || 
-        "Hmm, let me think about that differently. Can you give me more context about what you're working on?";
-    } catch (aiError) {
-      console.error('AI Error:', aiError);
+      const content = completion.choices[0]?.message?.content;
+      
+      if (content && content.trim().length > 10) {
+        aiResponse = content;
+        usedAI = true;
+      } else {
+        throw new Error('Empty or short response from AI');
+      }
+    } catch (aiError: any) {
+      console.error('AI Error details:', {
+        message: aiError?.message,
+        stack: aiError?.stack,
+        name: aiError?.name
+      });
       // Fallback response when AI is unavailable
-      aiResponse = generateFallbackResponse(message, studentName);
+      aiResponse = generateSmartFallback(message, studentName);
     }
     
     // Add AI response to messages
@@ -187,7 +152,7 @@ export async function POST(request: NextRequest) {
       await db.mentorSession.update({
         where: { id: session.id },
         data: {
-          messages: JSON.stringify(messages.slice(-40)) // Keep last 40 messages
+          messages: JSON.stringify(messages.slice(-40))
         }
       });
     } else {
@@ -202,78 +167,181 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({
       response: aiResponse,
-      sessionId: session.id
+      sessionId: session.id,
+      usedAI // For debugging
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in mentor chat:', error);
-    return NextResponse.json({ error: 'Failed to process message' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Failed to process message',
+      details: error?.message 
+    }, { status: 500 });
   }
 }
 
-function generateFallbackResponse(message: string, studentName?: string): string {
+function generateSmartFallback(message: string, studentName?: string): string {
   const lowerMessage = message.toLowerCase();
   
-  if (lowerMessage.includes('help') || lowerMessage.includes('stuck')) {
-    return `Alright, let's work through this together, ${studentName || 'builder'}.
+  // Vector database / embeddings
+  if (lowerMessage.includes('vector') || lowerMessage.includes('embedding')) {
+    return `**Vector Databases** store meaning as numbers.
 
-**The debugging framework:**
-1. What did you expect to happen?
-2. What actually happened?
-3. What changed between "working" and "broken"?
+Every text becomes a list of ~1000 numbers. Similar meanings = similar numbers.
 
-Tell me about the problem and we'll trace it step by step.`;
+**Example:**
+\`\`\`
+"I love coding" → [0.23, -0.45, 0.87, ...]
+"I enjoy programming" → [0.21, -0.44, 0.89, ...]  // Very similar!
+\`\`\`
+
+**Use cases:**
+- Semantic search (find "similar" documents)
+- Recommendation systems (Spotify uses this)
+- RAG for AI (give LLM relevant context)
+
+**Popular options:** Pinecone, Supabase pgvector, Weaviate
+
+What's your use case?`;
   }
   
-  if (lowerMessage.includes('invention') || lowerMessage.includes('idea')) {
-    return `Love the inventor mindset! 🚀
+  // Performance / optimization
+  if (lowerMessage.includes('lag') || lowerMessage.includes('slow') || lowerMessage.includes('performance') || lowerMessage.includes('optimize')) {
+    return `**Performance debugging framework:**
 
-**The best inventions solve real pain points.** Ask yourself:
-- What's broken in your daily life?
-- What tool do you wish existed?
-- What would you build if you had unlimited time?
+1. **Measure first** - What's actually slow? Use a profiler.
+2. **Find the bottleneck** - Usually one thing causes 80% of the problem
+3. **Fix the biggest offender** - Don't optimize everything
 
-What domain are you thinking about - AI, games, systems, something else? Let's brainstorm.`;
+**Common culprits in games/apps:**
+- N² algorithms (collision, searching)
+- Unnecessary renders/updates
+- Network calls in loops
+- Memory allocations every frame
+
+What specifically is slow? Let's diagnose it.`;
   }
   
-  if (lowerMessage.includes('explain') || lowerMessage.includes('what is') || lowerMessage.includes('how does')) {
-    return `Great question!
+  // AI / LLM related
+  if (lowerMessage.includes('ai') || lowerMessage.includes('llm') || lowerMessage.includes('gpt') || lowerMessage.includes('model')) {
+    return `**LLMs 101:**
 
-To give you the best explanation, tell me:
-1. What do you already know about this topic?
-2. Are you asking for conceptual understanding or practical implementation?
+They predict the next token (roughly a word). That's it.
 
-The more context you give me, the more useful I can be.`;
+\`\`\`
+Input: "The cat sat on the"
+Model: What word usually follows? → "mat" (or "floor", "couch"...)
+\`\`\`
+
+**Key concepts:**
+- **Context window** - How much text it can "see" (4K-200K tokens)
+- **Temperature** - Creativity level (0=boring, 1=creative, 2=chaotic)
+- **Tokens** - ~4 characters each (affects cost)
+
+**For your projects:**
+- Use API (OpenAI, Anthropic) for quality
+- Use local models (Ollama) for privacy/cost
+- RAG for giving it YOUR data
+
+What do you want to build with AI?`;
   }
   
-  if (lowerMessage.includes('architecture') || lowerMessage.includes('design') || lowerMessage.includes('scale')) {
-    return `Architecture time! Let's think systematically.
+  // Game development
+  if (lowerMessage.includes('game') || lowerMessage.includes('physics') || lowerMessage.includes('render') || lowerMessage.includes('sprite')) {
+    return `**Game dev fundamentals:**
 
-**Key questions for any system:**
-- What are the constraints? (users, latency, budget)
-- What are the failure modes?
-- What trade-offs are acceptable?
+**The Game Loop:**
+\`\`\`
+while (running) {
+  processInput()
+  update(deltaTime)  // Fixed timestep!
+  render()
+}
+\`\`\`
 
-What are you building? Let's design something solid.`;
+**Key patterns:**
+- **Entity Component System (ECS)** - Compose objects from behaviors
+- **State machines** - For AI, menus, game states
+- **Object pooling** - Reuse objects, don't create/destroy
+
+**Performance:**
+- Spatial partitioning for collision
+- Frustum culling for rendering
+- Update AI less often than rendering
+
+What kind of game are you building?`;
   }
   
-  if (lowerMessage.includes('code') || lowerMessage.includes('bug') || lowerMessage.includes('error')) {
-    return `Let's debug this.
+  // Architecture / design
+  if (lowerMessage.includes('architecture') || lowerMessage.includes('design') || lowerMessage.includes('scale') || lowerMessage.includes('system')) {
+    return `**System design approach:**
 
-Share:
-1. The relevant code snippet
-2. The error message (if any)
-3. What you've already tried
+1. **Define requirements**
+   - How many users?
+   - What latency is acceptable?
+   - What's the failure impact?
 
-We'll figure it out together.`;
+2. **Choose patterns**
+   - Monolith vs microservices
+   - SQL vs NoSQL
+   - Cache strategy
+
+3. **Plan for failure**
+   - What breaks if X goes down?
+   - How do you recover?
+
+**Scale progression:**
+- 1 user: Just ship it
+- 1K users: Add caching
+- 100K users: Add replicas
+- 1M+ users: Shard everything
+
+What are you designing?`;
   }
   
+  // Concept explanation
+  if (lowerMessage.includes('explain') || lowerMessage.includes('what is') || lowerMessage.includes('how does') || lowerMessage.includes('concept')) {
+    return `Got it - you want to understand something deeply.
+
+**To give you the best explanation, tell me:**
+1. The specific concept
+2. What you already know about it
+3. Are you learning for understanding or building?
+
+The more specific your question, the more useful my answer.`;
+  }
+  
+  // Invention / ideas
+  if (lowerMessage.includes('idea') || lowerMessage.includes('invent') || lowerMessage.includes('build') || lowerMessage.includes('create')) {
+    return `**Finding YOUR idea:**
+
+1. **Scratch your own itch** - What frustrates YOU?
+2. **Notice "there should be an app for that" moments**
+3. **Combine things** - AI + games? Vector search + note-taking?
+
+**Validation questions:**
+- Who has this problem?
+- Would they pay/switch from current solution?
+- Can YOU build v1 in a weekend?
+
+**Promising areas:**
+- AI agents that DO things
+- Developer tools (you're the user!)
+- Niche games with unique mechanics
+
+What domain interests you most?`;
+  }
+  
+  // Default
   return `Hey ${studentName || 'there'}! 👋
 
-I'm Atlas, your engineering mentor. I'm here to help with:
-- **Technical concepts** (AI, systems, game dev, architecture)
-- **Debugging** code and systems
-- **Design decisions** and trade-offs
-- **Invention ideas** and implementation
+I'm Atlas, your engineering mentor. I can help with:
 
-What are you working on? Give me the details!`;
+- **AI/ML** - LLMs, RAG, vector databases, agents
+- **Systems** - OS internals, memory, file systems
+- **Games** - Physics, multiplayer, optimization
+- **Architecture** - Scalability, design patterns
+
+**Ask me anything specific** - the more detail, the better my answer.
+
+What are you working on?`;
 }
