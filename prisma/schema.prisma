@@ -1,8 +1,5 @@
 // This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// learn more about it in the docs: https://pris.ly/cli/prisma-schema
 
 generator client {
   provider = "prisma-client-js"
@@ -13,20 +10,127 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+// Student profile with adaptive learning settings
+model Student {
+  id                 String   @id @default(cuid())
+  name               String
+  age                Int
+  currentWeek        Int      @default(1)
+  difficultyLevel    String   @default("advanced") // beginner, intermediate, advanced, legendary
+  totalMissionsDone  Int      @default(0)
+  totalInventions    Int      @default(0)
+  engineeringScore   Int      @default(0) // 0-100
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  
+  progress          Progress[]
+  inventions        Invention[]
+  patentIdeas       PatentIdea[]
+  mentorSessions    MentorSession[]
+  architectureNotes ArchitectureNote[]
 }
 
-model Post {
-  id        String   @id @default(cuid())
-  title     String
-  content   String?
-  published Boolean  @default(false)
-  authorId  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+// Weekly missions with full curriculum data
+model Mission {
+  id                      String   @id @default(cuid())
+  weekNumber              Int      @unique
+  title                   String
+  objective               String
+  coreBuildProject        String
+  stretchGoals            String   // JSON array
+  architectureConcepts    String   // JSON array
+  terminology             String   // JSON array of {term, definition}
+  realWorldParallel       String
+  advancedChallenge       String?
+  teachingChallenge       String
+  inventionChallenge      String
+  toolRecommendations     String   // JSON array of {tool, reason}
+  legendaryMission        String?  // Optional extremely challenging project
+  estimatedHours          Int      @default(5)
+  difficulty              String   @default("advanced")
+  category                String   // AI, OS, Game, Distributed, Infrastructure
+  createdAt               DateTime @default(now())
+  
+  progress Progress[]
+}
+
+// Track student progress through missions
+model Progress {
+  id               String   @id @default(cuid())
+  studentId        String
+  missionId        String
+  status           String   @default("locked") // locked, available, in_progress, completed
+  startedAt        DateTime?
+  completedAt      DateTime?
+  notes            String?
+  buildLink        String?  // Link to their project
+  reflectionNotes  String?  // Architecture trainer responses
+  selfAssessment   Int?     // 1-5 confidence rating
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  mission Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  
+  @@unique([studentId, missionId])
+}
+
+// Invention Lab tracking
+model Invention {
+  id               String   @id @default(cuid())
+  studentId        String
+  title            String
+  problemSolved    String
+  noveltyDesc      String
+  architectureDesc String?
+  prototypeLink    String?
+  status           String   @default("idea") // idea, prototype, testing, refined
+  patentable       Boolean  @default(false)
+  weekCreated      Int
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+// Patent preparation pathway
+model PatentIdea {
+  id                 String   @id @default(cuid())
+  studentId          String
+  inventionId        String?
+  title              String
+  problemStatement   String
+  currentSolutions   String
+  newApproach        String
+  advantages         String
+  stage              Int      @default(1) // 1-4 stages of patent prep
+  provisionalDraft   String?  // Final draft content
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+// AI Mentor conversation history
+model MentorSession {
+  id           String   @id @default(cuid())
+  studentId    String
+  messages     String   // JSON array of {role, content, timestamp}
+  context      String?  // What mission/topic they're discussing
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+// Architecture trainer notes
+model ArchitectureNote {
+  id               String   @id @default(cuid())
+  studentId        String
+  missionWeek      Int
+  question         String
+  answer           String
+  createdAt        DateTime @default(now())
+  
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
 }
