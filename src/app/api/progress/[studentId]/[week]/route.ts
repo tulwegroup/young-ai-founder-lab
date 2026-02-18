@@ -108,3 +108,37 @@ export async function POST(
     return NextResponse.json({ error: 'Failed to update progress' }, { status: 500 });
   }
 }
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ studentId: string; week: string }> }
+) {
+  try {
+    const { studentId, week } = await params;
+    const weekNumber = parseInt(week);
+    
+    // Get mission
+    const mission = await db.mission.findUnique({
+      where: { weekNumber }
+    });
+    
+    if (!mission) {
+      return NextResponse.json({ error: 'Mission not found' }, { status: 404 });
+    }
+    
+    // Delete progress
+    await db.progress.delete({
+      where: {
+        studentId_missionId: {
+          studentId,
+          missionId: mission.id
+        }
+      }
+    });
+    
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error resetting progress:', error);
+    return NextResponse.json({ error: 'Failed to reset progress' }, { status: 500 });
+  }
+}

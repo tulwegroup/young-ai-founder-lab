@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Rocket, Brain, Lightbulb, Trophy, MessageCircle, 
   ChevronRight, Zap, Target, Clock, Star,
-  BookOpen, Wrench, Award, TrendingUp, Menu, X
+  BookOpen, Wrench, Award, TrendingUp, Menu, X, HelpCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,6 +21,7 @@ import AIMentor from '@/components/AIMentor';
 import PatentPathway from '@/components/PatentPathway';
 import ArchitectureTrainer from '@/components/ArchitectureTrainer';
 import StudentSetup from '@/components/StudentSetup';
+import HelpGuide from '@/components/HelpGuide';
 
 export default function YoungAIFounderLab() {
   const [activeTab, setActiveTab] = useState('missions');
@@ -28,6 +29,7 @@ export default function YoungAIFounderLab() {
   const [selectedMission, setSelectedMission] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
 
   useEffect(() => {
     fetchStudent();
@@ -178,6 +180,17 @@ export default function YoungAIFounderLab() {
               <span className="font-medium">{item.label}</span>
             </motion.button>
           ))}
+          
+          {/* Help Button */}
+          <motion.button
+            whileHover={{ x: 4 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setShowHelp(true)}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 transition-colors"
+          >
+            <HelpCircle className="w-5 h-5" />
+            <span className="font-medium">How to Use</span>
+          </motion.button>
         </nav>
 
         {/* Stats */}
@@ -311,6 +324,9 @@ export default function YoungAIFounderLab() {
           )}
         </AnimatePresence>
       </main>
+
+      {/* Help Guide Modal */}
+      <HelpGuide isOpen={showHelp} onClose={() => setShowHelp(false)} />
     </div>
   );
 }

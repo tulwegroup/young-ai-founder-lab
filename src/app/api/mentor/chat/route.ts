@@ -1,49 +1,69 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
-// Check if we have environment variables for the AI
-const ZAI_BASE_URL = process.env.ZAI_BASE_URL;
-const ZAI_API_KEY = process.env.ZAI_API_KEY;
+// OpenAI API configuration
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const OPENAI_BASE_URL = process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1';
+const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 
 const SYSTEM_PROMPT = `You are **Atlas**, an elite AI engineering mentor for gifted young builders (ages 11-15). They already build AI tools, games, and systems - they need expert guidance, not basics.
 
+## Your Identity
+- You are a confident, knowledgeable mentor
+- You NEVER say "As an AI" or "I don't have access to" or similar disclaimers
+- You speak directly and with authority
+- You remember the conversation context
+
 ## Your Expertise
-- **AI/ML**: LLMs, RAG, vector databases, agents, fine-tuning
-- **Systems**: OS internals, memory management, file systems
-- **Games**: Physics, multiplayer, procedural generation
-- **Infrastructure**: Distributed systems, databases, caching
+- **AI/ML**: LLMs, RAG, vector databases, agents, fine-tuning, neural networks
+- **Systems**: OS internals, memory management, file systems, processes
+- **Games**: Physics, multiplayer, procedural generation, rendering
+- **Infrastructure**: Distributed systems, databases, caching, scaling
 
 ## Response Style
-1. **Direct & Technical** - Use real terminology, they can handle it
-2. **Code Examples** - Show, don't just tell
-3. **Analogies** - Connect to games/apps they know
-4. **Challenge Them** - Ask follow-up questions
-5. **Be Confident** - Never hedge with "I think"
+1. **Direct & Technical** - Use real terminology, explain if asked
+2. **Code Examples** - Show actual code, not pseudo-code
+3. **Analogies** - Connect to games/apps they know (Roblox, Minecraft, Discord)
+4. **Challenge Them** - Ask follow-up questions to deepen understanding
+5. **Be Contextual** - Remember what they just said, don't ignore it
 
-## Example Interactions
+## CRITICAL RULES
+- NEVER repeat the same response if the user asks a follow-up
+- NEVER ignore what the user just said and give a generic response
+- If they answer your questions, ACKNOWLEDGE their answers and build on them
+- If they seem confused, SIMPLIFY and explain step by step
+- Stay on topic - don't switch to unrelated topics mid-conversation
 
-User: "What's a vector database?"
-Atlas: A vector database stores **meaning as numbers**. 
+## Example Conversation Flow
 
-Every piece of text gets converted to a list of ~1000 numbers (a vector). Similar meanings = similar numbers. Spotify uses this - your listening history becomes a vector, and it finds songs with similar vectors.
+User: "Help me design systems"
+Atlas: "System design - let's break it down.
 
-\`\`\`
-"I love building games" → [0.23, -0.45, 0.87, ...]
-"I enjoy creating games" → [0.21, -0.44, 0.89, ...]  // Very similar!
-\`\`\`
+**First, tell me:**
+1. What are you building? (app, game, service)
+2. How many users do you expect?
+3. What's the main thing it does?
 
-**Popular options**: Pinecone, Supabase pgvector, Weaviate
+Then we'll pick the right architecture together."
 
-What are you building that needs semantic search?
+User: "It's a game like Roblox, maybe 1 million players"
+Atlas: "A Roblox-like game for 1M players - that's serious scale!
+
+**Key challenges you'll face:**
+1. **Real-time sync** - 1M players means you need spatial partitioning
+2. **Database load** - Player data, inventories, worlds
+3. **Matchmaking** - Getting players into games fast
+
+**Architecture for this:**
+- Game servers: Run in regions, each handles ~100 players
+- State server: Redis for fast player state (health, position)
+- Database: PostgreSQL for permanent data (inventory, progress)
+
+What part should we dive into first?"
 
 ---
 
-## Rules
-- Never say "As an AI" or "I think"
-- Always give specific, actionable advice
-- Use markdown formatting (code blocks, bold, lists)
-- End with a question or challenge
-- Reference real technologies/companies`;
+Remember: You are having a CONVERSATION. Respond to what they actually say.`;
 
 export async function POST(request: NextRequest) {
   try {
@@ -76,46 +96,69 @@ export async function POST(request: NextRequest) {
     
     // Get AI response
     let aiResponse: string;
+    let debugInfo: any = {
+      apiKeySet: !!OPENAI_API_KEY,
+      apiKeyLength: OPENAI_API_KEY?.length || 0,
+      model: OPENAI_MODEL,
+      baseUrl: OPENAI_BASE_URL
+    };
     
-    // Try to use the AI API if configured
-    if (ZAI_BASE_URL && ZAI_API_KEY) {
+    // Try to use OpenAI API if configured
+    if (OPENAI_API_KEY) {
       try {
-        const response = await fetch(`${ZAI_BASE_URL}/chat/completions`, {
+        const conversationMessages = [
+          { role: 'system', content: SYSTEM_PROMPT },
+          ...messages.slice(-10).map(m => ({
+            role: m.role === 'user' ? 'user' : 'assistant',
+            content: m.content
+          }))
+        ];
+        
+        debugInfo.messagesCount = conversationMessages.length;
+        
+        const response = await fetch(`${OPENAI_BASE_URL}/chat/completions`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${ZAI_API_KEY}`,
+            'Authorization': `Bearer ${OPENAI_API_KEY}`,
           },
           body: JSON.stringify({
-            messages: [
-              { role: 'assistant', content: SYSTEM_PROMPT },
-              ...messages.slice(-10).map(m => ({
-                role: m.role === 'user' ? 'user' : 'assistant',
-                content: m.content
-              }))
-            ],
-            thinking: { type: 'disabled' }
+            model: OPENAI_MODEL,
+            messages: conversationMessages,
+            temperature: 0.7,
+            max_tokens: 1500
           })
         });
         
+        debugInfo.httpStatus = response.status;
+        
         if (response.ok) {
           const data = await response.json();
+          debugInfo.responseData = JSON.stringify(data).substring(0, 200);
           const content = data.choices?.[0]?.message?.content;
           if (content && content.trim().length > 10) {
             aiResponse = content;
+            debugInfo.source = 'openai';
           } else {
-            aiResponse = generateSmartFallback(message, studentName);
+            debugInfo.error = 'Empty or short response';
+            aiResponse = generateSmartFallback(message, studentName, messages);
+            debugInfo.source = 'fallback_empty';
           }
         } else {
-          aiResponse = generateSmartFallback(message, studentName);
+          const errorText = await response.text();
+          debugInfo.error = `HTTP ${response.status}: ${errorText.substring(0, 200)}`;
+          aiResponse = generateSmartFallback(message, studentName, messages);
+          debugInfo.source = 'fallback_http_error';
         }
-      } catch (error) {
-        console.error('AI API Error:', error);
-        aiResponse = generateSmartFallback(message, studentName);
+      } catch (error: any) {
+        debugInfo.error = error.message;
+        debugInfo.source = 'fallback_exception';
+        aiResponse = generateSmartFallback(message, studentName, messages);
       }
     } else {
-      // No AI API configured, use smart fallback
-      aiResponse = generateSmartFallback(message, studentName);
+      debugInfo.error = 'No API key configured';
+      debugInfo.source = 'fallback_no_key';
+      aiResponse = generateSmartFallback(message, studentName, messages);
     }
     
     // Add AI response to messages
@@ -144,7 +187,8 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({
       response: aiResponse,
-      sessionId: session.id
+      sessionId: session.id,
+      debug: debugInfo
     });
   } catch (error: any) {
     console.error('Error in mentor chat:', error);
@@ -155,8 +199,42 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function generateSmartFallback(message: string, studentName?: string): string {
+function generateSmartFallback(message: string, studentName?: string, conversationHistory?: Array<{ role: string; content: string }>): string {
   const lowerMessage = message.toLowerCase();
+  
+  // Check conversation context if available
+  const lastAssistantMessage = conversationHistory
+    ?.filter(m => m.role === 'assistant')
+    ?.pop()?.content || '';
+  
+  // If we were just talking about system design and they answered questions
+  if (lastAssistantMessage.includes('system design') || lastAssistantMessage.includes('architecture')) {
+    if (lowerMessage.includes('million') || lowerMessage.includes('user') || lowerMessage.includes('latency') || lowerMessage.includes('fail')) {
+      return `Got it - let me address each point:
+
+**What is latency?**
+Latency = how long something takes. 
+- 100ms = feels instant
+- 500ms = noticeable delay  
+- 2s = feels slow
+
+For a game with 1M users, you want <100ms latency.
+
+**Monolith vs Microservices:**
+- **Monolith**: Everything in one big app. Simple to build, harder to scale past ~100K users.
+- **Microservices**: Split into small services (auth, game, chat). More complex but scales better.
+
+**Your situation (1M users, money at stake):**
+Start with a **modular monolith** - organized like microservices but deployed as one app. When you hit 500K users, split the services.
+
+**Failure planning:**
+- What if database crashes? → Have a replica ready
+- What if server goes down? → Run multiple servers behind a load balancer
+- What if everything fails? → Backups every hour to a different region
+
+What's the main feature of your system? Game? App? Service?`;
+    }
+  }
   
   // Vector database / embeddings
   if (lowerMessage.includes('vector') || lowerMessage.includes('embedding')) {

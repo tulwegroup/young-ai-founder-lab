@@ -19,6 +19,14 @@ interface Message {
   timestamp: string;
 }
 
+interface DebugInfo {
+  apiKeySet?: boolean;
+  apiKeyLength?: number;
+  model?: string;
+  source?: string;
+  error?: string;
+}
+
 interface AIMentorProps {
   studentId: string;
   studentName: string;
@@ -38,6 +46,7 @@ export default function AIMentor({ studentId, studentName }: AIMentorProps) {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<DebugInfo | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -98,6 +107,10 @@ export default function AIMentor({ studentId, studentName }: AIMentorProps) {
           timestamp: new Date().toISOString(),
         };
         setMessages(prev => [...prev, assistantMessage]);
+        // Update debug info
+        if (data.debug) {
+          setDebugInfo(data.debug);
+        }
       } else {
         // Fallback response
         const fallbackMessage: Message = {
@@ -121,12 +134,16 @@ export default function AIMentor({ studentId, studentName }: AIMentorProps) {
   };
 
   const clearConversation = async () => {
-    if (!sessionId) return;
+    if (!studentId) return;
     
     try {
-      await fetch(`/api/mentor/${sessionId}`, { method: 'DELETE' });
-      setMessages([]);
-      initSession();
+      const res = await fetch(`/api/mentor/${studentId}`, { method: 'DELETE' });
+      if (res.ok) {
+        setMessages([]);
+        setDebugInfo(null);
+        setSessionId(null);
+        await initSession();
+      }
     } catch (error) {
       console.error('Failed to clear conversation:', error);
     }
@@ -318,6 +335,26 @@ export default function AIMentor({ studentId, studentName }: AIMentorProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Debug Panel */}
+      {debugInfo && (
+        <div className="mt-4 p-3 bg-slate-900 rounded-lg border border-slate-700">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-xs font-mono text-slate-500">DEBUG INFO:</span>
+            {debugInfo.source === 'openai' ? (
+              <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded">✓ Connected to OpenAI</span>
+            ) : (
+              <span className="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded">⚠ Using Fallback ({debugInfo.source})</span>
+            )}
+          </div>
+          <div className="text-xs font-mono text-slate-500 space-y-1">
+            <div>API Key Set: {debugInfo.apiKeySet ? '✓ Yes' : '✗ No'}</div>
+            {debugInfo.apiKeyLength && <div>Key Length: {debugInfo.apiKeyLength}</div>}
+            {debugInfo.model && <div>Model: {debugInfo.model}</div>}
+            {debugInfo.error && <div className="text-red-400">Error: {debugInfo.error}</div>}
+          </div>
+        </div>
+      )}
 
       {/* Quick Topics */}
       <div className="mt-6">

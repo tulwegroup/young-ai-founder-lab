@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { 
   ArrowLeft, Clock, Target, Zap, Star, BookOpen, Wrench,
   Trophy, MessageCircle, Lightbulb, ChevronDown, ChevronUp,
-  CheckCircle2, ExternalLink, Play
+  CheckCircle2, ExternalLink, Play, RotateCcw, Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -139,6 +139,22 @@ export default function MissionDetail({ weekNumber, studentId, onBack, onProgres
     handleSaveProgress({ status: 'completed' });
   };
 
+  const handleResetMission = async () => {
+    if (!confirm('Are you sure you want to reset this mission? All your progress will be lost.')) return;
+    
+    try {
+      const res = await fetch(`/api/progress/${studentId}/${weekNumber}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        setProgress(null);
+        onProgressUpdate();
+      }
+    } catch (error) {
+      console.error('Failed to reset mission:', error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -215,15 +231,25 @@ export default function MissionDetail({ weekNumber, studentId, onBack, onProgres
             </div>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             {status === 'available' && (
               <Button onClick={handleStartMission} className="bg-purple-500 hover:bg-purple-600">
                 <Play className="w-4 h-4 mr-2" /> Start Mission
               </Button>
             )}
             {status === 'in_progress' && (
-              <Button onClick={handleCompleteMission} className="bg-green-500 hover:bg-green-600">
-                <CheckCircle2 className="w-4 h-4 mr-2" /> Complete Mission
+              <>
+                <Button onClick={handleCompleteMission} className="bg-green-500 hover:bg-green-600">
+                  <CheckCircle2 className="w-4 h-4 mr-2" /> Complete Mission
+                </Button>
+                <Button onClick={handleResetMission} variant="outline" className="border-red-500/30 text-red-400 hover:bg-red-500/10">
+                  <RotateCcw className="w-4 h-4 mr-2" /> Reset
+                </Button>
+              </>
+            )}
+            {status === 'completed' && (
+              <Button onClick={handleResetMission} variant="outline" className="border-red-500/30 text-red-400 hover:bg-red-500/10">
+                <RotateCcw className="w-4 h-4 mr-2" /> Reset Progress
               </Button>
             )}
           </div>
